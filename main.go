@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -89,6 +90,16 @@ func getFiles(dir string) []os.FileInfo {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].IsDir() && !files[j].IsDir() {
+			return true
+		}
+		if !files[i].IsDir() && files[j].IsDir() {
+			return false
+		}
+		return files[i].Name() < files[j].Name()
+	})
 
 	if !showHidden {
 		notHidden := files[:0]
@@ -179,12 +190,27 @@ func printFiles(files []os.FileInfo, selected os.FileInfo) {
 		if f.IsDir() {
 			suffix = "/"
 		}
+		prepend := "  "
 		if f == selected {
-			printWide(0, i+offset, "> "+f.Name()+suffix, termbox.ColorBlack, termbox.ColorBlue)
-		} else {
-			printWide(0, i+offset, "  "+f.Name()+suffix, termbox.ColorBlue, termbox.ColorDefault)
+			prepend = "> "
 		}
+		fg, bg := getColors(f, selected)
+		printWide(0, i+offset, prepend+f.Name()+suffix, fg, bg)
 	}
 	printWide(0, h-1, "total: "+strconv.Itoa(len(files)), termbox.ColorBlue, termbox.ColorDefault)
 	termbox.Flush()
+}
+
+func getColors(file os.FileInfo, selected os.FileInfo) (termbox.Attribute, termbox.Attribute) {
+	switch {
+	case file.IsDir() && file == selected:
+		return termbox.ColorBlack, termbox.ColorBlue
+	case file.IsDir() && file != selected:
+		return termbox.ColorBlue, termbox.ColorDefault
+	case !file.IsDir() && file == selected:
+		return termbox.ColorBlack, termbox.ColorWhite
+	case !file.IsDir() && file != selected:
+		return termbox.ColorWhite, termbox.ColorDefault
+	}
+	return termbox.ColorDefault, termbox.ColorDefault
 }
