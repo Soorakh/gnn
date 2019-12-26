@@ -153,7 +153,16 @@ func updateVisible() {
 	if visibleCount > len(files) || visibleCount < 0 {
 		visibleCount = len(files)
 	}
-	visibleFiles = files[0:visibleCount]
+	offset := 0
+	middle := h / 2
+	if selectedFileIndex >= visibleCount-middle && visibleCount < len(files) {
+		offset = selectedFileIndex - visibleCount + middle
+	}
+	tail := visibleCount + offset
+	if tail > len(files) {
+		tail = len(files)
+	}
+	visibleFiles = files[offset:tail]
 }
 
 func updateDir(d string) {
@@ -175,6 +184,20 @@ func printWide(x, y int, s string, fg termbox.Attribute, bg termbox.Attribute) {
 			w = 1
 		}
 		x += w
+	}
+}
+
+func dd(as []string) {
+	for i, s := range as {
+		x := 40
+		for _, r := range s {
+			termbox.SetCell(x, i, r, termbox.ColorDefault, termbox.ColorDefault)
+			w := runewidth.RuneWidth(r)
+			if w == 0 || (w == 2 && runewidth.IsAmbiguousWidth(r)) {
+				w = 1
+			}
+			x += w
+		}
 	}
 }
 
