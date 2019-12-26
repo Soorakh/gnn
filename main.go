@@ -108,7 +108,11 @@ func changeDir(file os.FileInfo) {
 		return
 	}
 	if file.IsDir() {
-		updateDir(dir + "/" + file.Name())
+		delimeter := "/"
+		if dir == "/" {
+			delimeter = ""
+		}
+		updateDir(dir + delimeter + file.Name())
 		printFiles(files, selectedFile)
 	} else {
 		cmd := exec.Command("xdg-open", dir+"/"+file.Name())
