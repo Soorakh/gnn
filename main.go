@@ -159,8 +159,9 @@ func updateVisible() {
 		offset = selectedFileIndex - visibleCount + middle
 	}
 	tail := visibleCount + offset
-	if tail > len(files) {
+	if tail >= len(files) {
 		tail = len(files)
+		offset = len(files) - visibleCount
 	}
 	visibleFiles = files[offset:tail]
 }
