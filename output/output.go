@@ -32,12 +32,20 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFileName string) {
 		termbox.SetCell(i, h-1, ' ', termbox.ColorWhite, termbox.ColorWhite)
 	}
 
+	fs := ""
+
+	if flen == 0 {
+		fs = "0/0"
+	} else {
+		fs = strconv.Itoa(selectedFileIndex+1) +
+			"/" + strconv.Itoa(flen) +
+			" [" + selectedFileName + "]"
+	}
+
 	printWide(
 		0,
 		h-1,
-		strconv.Itoa(selectedFileIndex+1)+
-			"/"+strconv.Itoa(flen)+
-			" ["+selectedFileName+"]",
+		fs,
 		termbox.ColorBlack,
 		termbox.ColorWhite)
 	printWide(
@@ -106,6 +114,9 @@ func getScrollPosition(h int, pos int) string {
 }
 
 func getFileName(file os.FileInfo) string {
+	if file == nil {
+		return ""
+	}
 	suffix := ""
 	if file.IsDir() {
 		suffix = "/"

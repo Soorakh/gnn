@@ -78,9 +78,24 @@ func openFile(file os.FileInfo, s *state.State) {
 }
 
 func updateDir(d string, s *state.State) {
+	resetSelected := d != s.Dir
+	ratio := float64(s.SelectedFileIndex) / float64(len(s.Files))
+
 	s.Dir = d
 	s.Files = files.GetFiles(d, s.ShowHidden)
-	s.SelectedFileIndex = 0
+	if !resetSelected {
+		if s.SelectedFileIndex >= len(s.Files) {
+			s.SelectedFileIndex = int(ratio * float64(len(s.Files)))
+		}
+		for i, v := range s.Files {
+			if v.Name() == s.SelectedFile.Name() {
+				s.SelectedFileIndex = i
+				break
+			}
+		}
+	} else {
+		s.SelectedFileIndex = 0
+	}
 	if len(s.Files) > 0 {
 		s.SelectedFile = s.Files[s.SelectedFileIndex]
 	} else {
@@ -105,7 +120,6 @@ func changeDirUp(s *state.State) {
 }
 
 func toggleHidden(s *state.State) {
-	// TODO selected file
 	s.ShowHidden = !s.ShowHidden
 	updateDir(s.Dir, s)
 	updateScreen(s)
