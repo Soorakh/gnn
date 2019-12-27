@@ -35,6 +35,8 @@ func Bind(s *state.State) {
 				changeDirUp(s)
 			case ev.Ch == '.':
 				toggleHidden(s)
+			case ev.Ch == 'e':
+				editFile(s)
 			}
 		case termbox.EventResize:
 			updateScreen(s)
@@ -106,5 +108,16 @@ func toggleHidden(s *state.State) {
 	// TODO selected file
 	s.ShowHidden = !s.ShowHidden
 	updateDir(s.Dir, s)
+	updateScreen(s)
+}
+
+func editFile(s *state.State) {
+	editor := os.Getenv("EDITOR")
+	cmd := exec.Command(editor, s.SelectedFile.Name())
+	cmd.Dir = s.Dir
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+	output.FixScreen()
 	updateScreen(s)
 }

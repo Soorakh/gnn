@@ -127,3 +127,7 @@ func getColors(file os.FileInfo, selected os.FileInfo) (termbox.Attribute, termb
 	}
 	return termbox.ColorDefault, termbox.ColorDefault
 }
+
+func FixScreen() {
+	termbox.Sync()
+}

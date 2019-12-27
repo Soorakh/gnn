@@ -8,6 +8,7 @@ import (
 
 func main() {
 	err := termbox.Init()
+	termbox.SetOutputMode(termbox.Output256)
 	if err != nil {
 		panic(err)
 	}
