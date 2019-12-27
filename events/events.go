@@ -30,7 +30,7 @@ func Bind(s *state.State) {
 			case ev.Ch == 'k' || ev.Key == termbox.KeyArrowUp:
 				moveCursorUp(s)
 			case ev.Ch == 'l' || ev.Key == termbox.KeyArrowRight || ev.Key == termbox.KeyEnter:
-				openFile(s.SelectedFile, s)
+				openFile(s.Selected.File, s)
 			case ev.Ch == 'h' || ev.Key == termbox.KeyArrowLeft || ev.Key == termbox.KeyBackspace2:
 				changeDirUp(s)
 			case ev.Ch == '.':
@@ -45,18 +45,18 @@ func Bind(s *state.State) {
 }
 
 func moveCursorDown(s *state.State) {
-	s.SelectedFileIndex = cursor.MoveDown(s.SelectedFileIndex, len(s.Files))
-	s.SelectedFile = s.Files[s.SelectedFileIndex]
+	s.Selected.Index = cursor.MoveDown(s.Selected.Index, len(s.Files))
+	s.Selected.File = s.Files[s.Selected.Index]
 	updateScreen(s)
 }
 
 func updateScreen(s *state.State) {
-	output.PrintFiles(s.Files, s.SelectedFile, s.Dir, s.SelectedFileIndex)
+	output.PrintFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index)
 }
 
 func moveCursorUp(s *state.State) {
-	s.SelectedFileIndex = cursor.MoveUp(s.SelectedFileIndex, len(s.Files))
-	s.SelectedFile = s.Files[s.SelectedFileIndex]
+	s.Selected.Index = cursor.MoveUp(s.Selected.Index, len(s.Files))
+	s.Selected.File = s.Files[s.Selected.Index]
 	updateScreen(s)
 }
 
@@ -80,27 +80,27 @@ func openFile(file os.FileInfo, s *state.State) {
 }
 
 func updateDir(d string, s *state.State, resetSelected bool) {
-	ratio := float64(s.SelectedFileIndex) / float64(len(s.Files))
+	ratio := float64(s.Selected.Index) / float64(len(s.Files))
 
 	s.Dir = d
 	s.Files = files.GetFiles(d, s.ShowHidden)
 	if !resetSelected {
-		if s.SelectedFileIndex >= len(s.Files) {
-			s.SelectedFileIndex = int(ratio * float64(len(s.Files)))
+		if s.Selected.Index >= len(s.Files) {
+			s.Selected.Index = int(ratio * float64(len(s.Files)))
 		}
 		for i, v := range s.Files {
-			if v.Name() == s.SelectedFile.Name() {
-				s.SelectedFileIndex = i
+			if v.Name() == s.Selected.File.Name() {
+				s.Selected.Index = i
 				break
 			}
 		}
 	} else {
-		s.SelectedFileIndex = 0
+		s.Selected.Index = 0
 	}
 	if len(s.Files) > 0 {
-		s.SelectedFile = s.Files[s.SelectedFileIndex]
+		s.Selected.File = s.Files[s.Selected.Index]
 	} else {
-		s.SelectedFile = nil
+		s.Selected.File = nil
 	}
 }
 
@@ -119,8 +119,8 @@ func changeDirUp(s *state.State) {
 	resetSelected := true
 
 	if newDir == s.Prev.Dir {
-		s.SelectedFileIndex = s.Prev.Index
-		s.SelectedFile = s.Prev.File
+		s.Selected.Index = s.Prev.Index
+		s.Selected.File = s.Prev.File
 		resetSelected = false
 	}
 
@@ -137,7 +137,7 @@ func toggleHidden(s *state.State) {
 
 func editFile(s *state.State) {
 	editor := os.Getenv("EDITOR")
-	cmd := exec.Command(editor, s.SelectedFile.Name())
+	cmd := exec.Command(editor, s.Selected.File.Name())
 	cmd.Dir = s.Dir
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

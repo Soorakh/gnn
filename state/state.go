@@ -8,13 +8,17 @@ type prev struct {
 	Index int
 }
 
+type selected struct {
+	File  os.FileInfo
+	Index int
+}
+
 type State struct {
-	Dir               string
-	Files             []os.FileInfo
-	SelectedFile      os.FileInfo
-	SelectedFileIndex int
-	ShowHidden        bool
-	Prev              prev
+	Dir        string
+	Files      []os.FileInfo
+	Selected   selected
+	ShowHidden bool
+	Prev       prev
 }
 
 func CreateState() *State {
