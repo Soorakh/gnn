@@ -12,7 +12,6 @@ func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedF
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	printWide(0, 0, dir, termbox.ColorDefault, termbox.ColorDefault)
 	offset := 2
-	w, h := termbox.Size()
 	visibleFiles := getVisible(files, selectedFileIndex)
 
 	for i, f := range visibleFiles {
@@ -23,20 +22,30 @@ func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedF
 		fg, bg := getColors(f, selected)
 		printWide(0, i+offset, prepend+getFileName(f), fg, bg)
 	}
+	printStatusBar(selectedFileIndex, len(files), getFileName(selected))
+}
+
+func printStatusBar(selectedFileIndex int, flen int, selectedFileName string) {
+	w, h := termbox.Size()
+
+	for i := 0; i < w; i++ {
+		termbox.SetCell(i, h-1, ' ', termbox.ColorWhite, termbox.ColorWhite)
+	}
+
 	printWide(
 		0,
 		h-1,
 		strconv.Itoa(selectedFileIndex+1)+
-			"/"+strconv.Itoa(len(files))+
-			" ["+getFileName(selected)+"]",
-		termbox.ColorWhite,
-		termbox.ColorDefault)
+			"/"+strconv.Itoa(flen)+
+			" ["+selectedFileName+"]",
+		termbox.ColorBlack,
+		termbox.ColorWhite)
 	printWide(
 		w-3,
 		h-1,
-		getScrollPosition(len(files), selectedFileIndex),
-		termbox.ColorWhite,
-		termbox.ColorDefault)
+		getScrollPosition(flen, selectedFileIndex),
+		termbox.ColorBlack,
+		termbox.ColorWhite)
 	termbox.Flush()
 }
 
