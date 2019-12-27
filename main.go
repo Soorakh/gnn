@@ -6,25 +6,27 @@ import (
 	"os"
 	"os/exec"
 	"sort"
-	"strconv"
 	"strings"
 
-	"github.com/mattn/go-runewidth"
+	"github.com/Soorakh/gnn/cursor"
+	"github.com/Soorakh/gnn/output"
 	"github.com/nsf/termbox-go"
 )
 
-var (
+type state struct {
 	dir               string
 	files             []os.FileInfo
 	selectedFile      os.FileInfo
 	selectedFileIndex int
-	visibleFiles      []os.FileInfo
 	showHidden        bool
-)
+}
+
+var s *state
 
 func main() {
-	dir, _ = os.Getwd()
-	updateDir(dir)
+	dir, _ := os.Getwd()
+	s = &state{}
+	updateDir(dir, s)
 
 	err := termbox.Init()
 	if err != nil {
@@ -32,7 +34,7 @@ func main() {
 	}
 	defer termbox.Close()
 
-	printFiles(files, selectedFile)
+	output.PrintFiles(s.files, s.selectedFile, s.dir, s.selectedFileIndex)
 
 loop:
 	for {
@@ -42,50 +44,42 @@ loop:
 			case ev.Ch == 'q':
 				break loop
 			case ev.Ch == 'j' || ev.Key == termbox.KeyArrowDown:
-				moveCursorDown()
+				moveCursorDown(s)
+				output.PrintFiles(s.files, s.selectedFile, s.dir, s.selectedFileIndex)
 			case ev.Ch == 'k' || ev.Key == termbox.KeyArrowUp:
-				moveCursorUp()
+				moveCursorUp(s)
 			case ev.Ch == 'l' || ev.Key == termbox.KeyArrowRight || ev.Key == termbox.KeyEnter:
-				changeDir(selectedFile)
+				changeDir(s.selectedFile, s)
 			case ev.Ch == 'h' || ev.Key == termbox.KeyArrowLeft || ev.Key == termbox.KeyBackspace2:
-				changeDirUp()
+				changeDirUp(s)
 			case ev.Ch == '.':
-				toggleHidden()
+				toggleHidden(s)
 			}
 		case termbox.EventResize:
-			printFiles(files, selectedFile)
+			output.PrintFiles(s.files, s.selectedFile, s.dir, s.selectedFileIndex)
 		}
 	}
 }
 
-func toggleHidden() {
+func toggleHidden(s *state) {
 	// TODO selected file
-	showHidden = !showHidden
-	updateDir(dir)
-	printFiles(files, selectedFile)
+	s.showHidden = !s.showHidden
+	updateDir(s.dir, s)
+	output.PrintFiles(s.files, s.selectedFile, s.dir, s.selectedFileIndex)
 }
 
-func moveCursorDown() {
-	if selectedFileIndex+1 >= len(files) {
-		selectedFileIndex = 0
-	} else {
-		selectedFileIndex = selectedFileIndex + 1
-	}
-	selectedFile = files[selectedFileIndex]
-	printFiles(files, selectedFile)
+func moveCursorDown(s *state) {
+	s.selectedFileIndex = cursor.MoveDown(s.selectedFileIndex, len(s.files))
+	s.selectedFile = s.files[s.selectedFileIndex]
 }
 
-func moveCursorUp() {
-	if selectedFileIndex == 0 {
-		selectedFileIndex = len(files) - 1
-	} else {
-		selectedFileIndex = selectedFileIndex - 1
-	}
-	selectedFile = files[selectedFileIndex]
-	printFiles(files, selectedFile)
+func moveCursorUp(s *state) {
+	s.selectedFileIndex = cursor.MoveUp(s.selectedFileIndex, len(s.files))
+	s.selectedFile = s.files[s.selectedFileIndex]
+	output.PrintFiles(s.files, s.selectedFile, s.dir, s.selectedFileIndex)
 }
 
-func getFiles(dir string) []os.FileInfo {
+func getFiles(dir string, showHidden bool) []os.FileInfo {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
@@ -114,156 +108,46 @@ func getFiles(dir string) []os.FileInfo {
 	return files
 }
 
-func changeDir(file os.FileInfo) {
+func changeDir(file os.FileInfo, s *state) {
 	if file == nil {
 		return
 	}
 	if file.IsDir() {
 		delimeter := "/"
-		if dir == "/" {
+		if s.dir == "/" {
 			delimeter = ""
 		}
-		updateDir(dir + delimeter + file.Name())
-		printFiles(files, selectedFile)
+		updateDir(s.dir+delimeter+file.Name(), s)
+		output.PrintFiles(s.files, s.selectedFile, s.dir, s.selectedFileIndex)
 	} else {
-		cmd := exec.Command("xdg-open", dir+"/"+file.Name())
+		cmd := exec.Command("xdg-open", s.dir+"/"+file.Name())
 		cmd.Start()
 	}
 }
 
-func changeDirUp() {
-	p := strings.Split(dir, "/")
+func changeDirUp(s *state) {
+	p := strings.Split(s.dir, "/")
 	plen := len(p)
 	if plen < 2 {
 		return
 	}
 	p = p[:plen-1]
 	if plen > 2 {
-		updateDir(strings.Join(p, "/"))
+		updateDir(strings.Join(p, "/"), s)
 	} else {
-		updateDir("/")
+		updateDir("/", s)
 	}
 
-	printFiles(files, selectedFile)
+	output.PrintFiles(s.files, s.selectedFile, s.dir, s.selectedFileIndex)
 }
 
-func updateVisible() {
-	_, h := termbox.Size()
-	visibleCount := h - 4
-	if visibleCount > len(files) || visibleCount < 0 {
-		visibleCount = len(files)
-	}
-	offset := 0
-	middle := h / 2
-	if selectedFileIndex >= visibleCount-middle && visibleCount < len(files) {
-		offset = selectedFileIndex - visibleCount + middle
-	}
-	tail := visibleCount + offset
-	if tail >= len(files) {
-		tail = len(files)
-		offset = len(files) - visibleCount
-	}
-	visibleFiles = files[offset:tail]
-}
-
-func updateDir(d string) {
-	dir = d
-	files = getFiles(dir)
-	selectedFileIndex = 0
-	if len(files) > 0 {
-		selectedFile = files[selectedFileIndex]
+func updateDir(d string, s *state) {
+	s.dir = d
+	s.files = getFiles(d, s.showHidden)
+	s.selectedFileIndex = 0
+	if len(s.files) > 0 {
+		s.selectedFile = s.files[s.selectedFileIndex]
 	} else {
-		selectedFile = nil
+		s.selectedFile = nil
 	}
-}
-
-func printWide(x, y int, s string, fg termbox.Attribute, bg termbox.Attribute) {
-	for _, r := range s {
-		termbox.SetCell(x, y, r, fg, bg)
-		w := runewidth.RuneWidth(r)
-		if w == 0 || (w == 2 && runewidth.IsAmbiguousWidth(r)) {
-			w = 1
-		}
-		x += w
-	}
-}
-
-func dd(as []string) {
-	for i, s := range as {
-		x := 40
-		for _, r := range s {
-			termbox.SetCell(x, i, r, termbox.ColorDefault, termbox.ColorDefault)
-			w := runewidth.RuneWidth(r)
-			if w == 0 || (w == 2 && runewidth.IsAmbiguousWidth(r)) {
-				w = 1
-			}
-			x += w
-		}
-	}
-}
-
-func printFiles(files []os.FileInfo, selected os.FileInfo) {
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	printWide(0, 0, dir, termbox.ColorDefault, termbox.ColorDefault)
-	offset := 2
-	w, h := termbox.Size()
-	updateVisible()
-
-	for i, f := range visibleFiles {
-		prepend := "  "
-		if f == selected {
-			prepend = "> "
-		}
-		fg, bg := getColors(f, selected)
-		printWide(0, i+offset, prepend+getFileName(f), fg, bg)
-	}
-	printWide(
-		0,
-		h-1,
-		strconv.Itoa(selectedFileIndex+1)+
-			"/"+strconv.Itoa(len(files))+
-			" ["+getFileName(selected)+"]",
-		termbox.ColorWhite,
-		termbox.ColorDefault)
-	printWide(
-		w-3,
-		h-1,
-		getScrollPosition(len(files), selectedFileIndex),
-		termbox.ColorWhite,
-		termbox.ColorDefault)
-	termbox.Flush()
-}
-
-func getScrollPosition(h int, pos int) string {
-	if pos == 0 || h == 0 {
-		return "top"
-	}
-	if pos+1 == h {
-		return "bot"
-	}
-	pc := float64(pos+1) * 100 / float64(h)
-	return strconv.Itoa(int(pc)) + "%"
-}
-
-func getFileName(file os.FileInfo) string {
-	suffix := ""
-	if file.IsDir() {
-		suffix = "/"
-	}
-
-	return file.Name() + suffix
-}
-
-func getColors(file os.FileInfo, selected os.FileInfo) (termbox.Attribute, termbox.Attribute) {
-	switch {
-	case file.IsDir() && file == selected:
-		return termbox.ColorBlack, termbox.ColorBlue
-	case file.IsDir() && file != selected:
-		return termbox.ColorBlue, termbox.ColorDefault
-	case !file.IsDir() && file == selected:
-		return termbox.ColorBlack, termbox.ColorWhite
-	case !file.IsDir() && file != selected:
-		return termbox.ColorWhite, termbox.ColorDefault
-	}
-	return termbox.ColorDefault, termbox.ColorDefault
 }
