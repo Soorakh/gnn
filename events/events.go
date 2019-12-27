@@ -14,7 +14,7 @@ import (
 
 func Init(s *state.State) {
 	dir, _ := os.Getwd()
-	updateDir(dir, s)
+	updateDir(dir, s, true)
 	updateScreen(s)
 }
 
@@ -69,7 +69,9 @@ func openFile(file os.FileInfo, s *state.State) {
 		if s.Dir == "/" {
 			delimeter = ""
 		}
-		updateDir(s.Dir+delimeter+file.Name(), s)
+		s.Prev.Dir = s.Dir
+		s.Prev.File = file
+		updateDir(s.Dir+delimeter+file.Name(), s, true)
 		updateScreen(s)
 	} else {
 		cmd := exec.Command("xdg-open", s.Dir+"/"+file.Name())
@@ -77,8 +79,7 @@ func openFile(file os.FileInfo, s *state.State) {
 	}
 }
 
-func updateDir(d string, s *state.State) {
-	resetSelected := d != s.Dir
+func updateDir(d string, s *state.State, resetSelected bool) {
 	ratio := float64(s.SelectedFileIndex) / float64(len(s.Files))
 
 	s.Dir = d
@@ -110,18 +111,27 @@ func changeDirUp(s *state.State) {
 		return
 	}
 	p = p[:plen-1]
+	newDir := "/"
 	if plen > 2 {
-		updateDir(strings.Join(p, "/"), s)
-	} else {
-		updateDir("/", s)
+		newDir = strings.Join(p, "/")
 	}
+
+	resetSelected := true
+
+	if newDir == s.Prev.Dir {
+		s.SelectedFileIndex = s.Prev.Index
+		s.SelectedFile = s.Prev.File
+		resetSelected = false
+	}
+
+	updateDir(newDir, s, resetSelected)
 
 	updateScreen(s)
 }
 
 func toggleHidden(s *state.State) {
 	s.ShowHidden = !s.ShowHidden
-	updateDir(s.Dir, s)
+	updateDir(s.Dir, s, false)
 	updateScreen(s)
 }
 
