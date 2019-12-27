@@ -206,23 +206,52 @@ func printFiles(files []os.FileInfo, selected os.FileInfo) {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	printWide(0, 0, dir, termbox.ColorDefault, termbox.ColorDefault)
 	offset := 2
-	_, h := termbox.Size()
+	w, h := termbox.Size()
 	updateVisible()
 
 	for i, f := range visibleFiles {
-		suffix := ""
-		if f.IsDir() {
-			suffix = "/"
-		}
 		prepend := "  "
 		if f == selected {
 			prepend = "> "
 		}
 		fg, bg := getColors(f, selected)
-		printWide(0, i+offset, prepend+f.Name()+suffix, fg, bg)
+		printWide(0, i+offset, prepend+getFileName(f), fg, bg)
 	}
-	printWide(0, h-1, "total: "+strconv.Itoa(len(files)), termbox.ColorBlue, termbox.ColorDefault)
+	printWide(
+		0,
+		h-1,
+		strconv.Itoa(selectedFileIndex+1)+
+			"/"+strconv.Itoa(len(files))+
+			" ["+getFileName(selected)+"]",
+		termbox.ColorWhite,
+		termbox.ColorDefault)
+	printWide(
+		w-3,
+		h-1,
+		getScrollPosition(len(files), selectedFileIndex),
+		termbox.ColorWhite,
+		termbox.ColorDefault)
 	termbox.Flush()
+}
+
+func getScrollPosition(h int, pos int) string {
+	if pos == 0 || h == 0 {
+		return "top"
+	}
+	if pos+1 == h {
+		return "bot"
+	}
+	pc := float64(pos+1) * 100 / float64(h)
+	return strconv.Itoa(int(pc)) + "%"
+}
+
+func getFileName(file os.FileInfo) string {
+	suffix := ""
+	if file.IsDir() {
+		suffix = "/"
+	}
+
+	return file.Name() + suffix
 }
 
 func getColors(file os.FileInfo, selected os.FileInfo) (termbox.Attribute, termbox.Attribute) {
