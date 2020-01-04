@@ -21,7 +21,7 @@ func GetFiles(dir string, showHidden bool) []os.FileInfo {
 		if !files[i].IsDir() && files[j].IsDir() {
 			return false
 		}
-		return files[i].Name() < files[j].Name()
+		return strings.ToLower(files[i].Name()) < strings.ToLower(files[j].Name())
 	})
 
 	if !showHidden {
