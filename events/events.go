@@ -47,6 +47,9 @@ func Bind(s *state.State) {
 				searchToggleOn(s)
 			case ev.Ch == 'd':
 				togglePromtOn(s)
+			case ev.Ch == 'r':
+				updateDir(s.Dir, s, false)
+				updateScreen(s)
 			}
 		case termbox.EventResize:
 			updateScreen(s)
