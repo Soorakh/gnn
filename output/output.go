@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/Soorakh/gnn/state"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
 
-func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedFileIndex int) {
+func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedFileIndex int, search state.Search) {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	printWide(0, 0, dir, termbox.ColorDefault, termbox.ColorDefault)
 	offset := 2
@@ -20,10 +21,10 @@ func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedF
 		fg, bg := getColors(f, selected)
 		printWide(0, i+offset, " "+getFileName(f), fg, bg)
 	}
-	printStatusBar(selectedFileIndex, len(files), selected)
+	printStatusBar(selectedFileIndex, len(files), selected, search)
 }
 
-func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo) {
+func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo, search state.Search) {
 	w, h := termbox.Size()
 
 	for i := 0; i < w; i++ {
@@ -32,18 +33,22 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo) {
 
 	fs := ""
 
-	if flen == 0 {
-		fs = "0/0"
+	if search.IsActive {
+		fs = "/" + search.Keyword
 	} else {
-		fs = strconv.Itoa(selectedFileIndex+1) +
-			"/" + strconv.Itoa(flen) +
-			" " + selectedFile.ModTime().Format("2006-01-02 15:04:05") + " " +
-			selectedFile.Mode().String() +
-			" " + formatSize(selectedFile.Size())
-		if !selectedFile.IsDir() && filepath.Ext(selectedFile.Name()) != "" {
-			fs = fs + " " + filepath.Ext(selectedFile.Name())
+		if flen == 0 {
+			fs = "0/0"
+		} else {
+			fs = strconv.Itoa(selectedFileIndex+1) +
+				"/" + strconv.Itoa(flen) +
+				" " + selectedFile.ModTime().Format("2006-01-02 15:04:05") + " " +
+				selectedFile.Mode().String() +
+				" " + formatSize(selectedFile.Size())
+			if !selectedFile.IsDir() && filepath.Ext(selectedFile.Name()) != "" {
+				fs = fs + " " + filepath.Ext(selectedFile.Name())
+			}
+			fs = fs + " [" + getFileName(selectedFile) + "]"
 		}
-		fs = fs + " [" + getFileName(selectedFile) + "]"
 	}
 
 	printWide(

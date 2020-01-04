@@ -8,10 +8,32 @@ import (
 	"strings"
 )
 
-func GetFiles(dir string, showHidden bool) []os.FileInfo {
+func GetFiles(dir string, showHidden bool, search string) []os.FileInfo {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// filter by search
+	if search != "" {
+		filtered := files[:0]
+		for _, file := range files {
+			if strings.Index(strings.ToLower(file.Name()), strings.ToLower(search)) != -1 {
+				filtered = append(filtered, file)
+			}
+		}
+		files = filtered
+	}
+
+	// filter by hidden
+	if !showHidden {
+		notHidden := files[:0]
+		for _, file := range files {
+			if strings.Index(file.Name(), ".") != 0 {
+				notHidden = append(notHidden, file)
+			}
+		}
+		files = notHidden
 	}
 
 	sort.Slice(files, func(i, j int) bool {
@@ -23,16 +45,6 @@ func GetFiles(dir string, showHidden bool) []os.FileInfo {
 		}
 		return strings.ToLower(files[i].Name()) < strings.ToLower(files[j].Name())
 	})
-
-	if !showHidden {
-		notHidden := files[:0]
-		for _, file := range files {
-			if strings.Index(file.Name(), ".") != 0 {
-				notHidden = append(notHidden, file)
-			}
-		}
-		return notHidden
-	}
 
 	return files
 }

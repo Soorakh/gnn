@@ -23,6 +23,10 @@ func Bind(s *state.State) {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
 			switch {
+			case s.Search.IsActive:
+				updateSearchKeyword(string(ev.Ch), ev.Key, s)
+			case ev.Key == termbox.KeyEsc:
+				cancelSearch(s)
 			case ev.Ch == 'q':
 				return
 			case ev.Ch == 'j' || ev.Key == termbox.KeyArrowDown:
@@ -37,11 +41,54 @@ func Bind(s *state.State) {
 				toggleHidden(s)
 			case ev.Ch == 'e':
 				editFile(s)
+			case ev.Ch == '/':
+				searchToggleOn(s)
 			}
 		case termbox.EventResize:
 			updateScreen(s)
 		}
 	}
+}
+
+func cancelSearch(s *state.State) {
+	s.Search.Keyword = ""
+	updateDir(s.Dir, s, false)
+	updateScreen(s)
+}
+
+func updateSearchKeyword(ch string, key termbox.Key, s *state.State) {
+	// Esc to stop search input
+	if key == termbox.KeyEsc {
+		s.Search.IsActive = false
+		updateScreen(s)
+		return
+	}
+	// Backspace to backspace
+	if key == termbox.KeyBackspace2 {
+		if len(s.Search.Keyword) == 0 {
+			return
+		}
+		s.Search.Keyword = s.Search.Keyword[0 : len(s.Search.Keyword)-1]
+		updateDir(s.Dir, s, true)
+		updateScreen(s)
+		return
+	}
+
+	// Non-iput buttons are ignored
+	if key <= termbox.KeyF1 && key >= termbox.KeyArrowRight {
+		return
+	}
+
+	// Append char to search by default
+	s.Search.Keyword = s.Search.Keyword + ch
+	updateDir(s.Dir, s, true)
+	updateScreen(s)
+}
+
+func searchToggleOn(s *state.State) {
+	s.Search.Keyword = ""
+	s.Search.IsActive = true
+	updateScreen(s)
 }
 
 func moveCursorDown(s *state.State) {
@@ -51,7 +98,7 @@ func moveCursorDown(s *state.State) {
 }
 
 func updateScreen(s *state.State) {
-	output.PrintFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index)
+	output.PrintFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search)
 }
 
 func moveCursorUp(s *state.State) {
@@ -83,8 +130,8 @@ func updateDir(d string, s *state.State, resetSelected bool) {
 	ratio := float64(s.Selected.Index) / float64(len(s.Files))
 
 	s.Dir = d
-	s.Files = files.GetFiles(d, s.ShowHidden)
-	if !resetSelected {
+	s.Files = files.GetFiles(d, s.ShowHidden, s.Search.Keyword)
+	if !resetSelected && s.Selected.File != nil {
 		if s.Selected.Index >= len(s.Files) {
 			s.Selected.Index = int(ratio * float64(len(s.Files)))
 		}

@@ -13,12 +13,18 @@ type selected struct {
 	Index int
 }
 
+type Search struct {
+	IsActive bool
+	Keyword  string
+}
+
 type State struct {
 	Dir        string
 	Files      []os.FileInfo
 	Selected   selected
 	ShowHidden bool
 	Prev       prev
+	Search     Search
 }
 
 func CreateState() *State {
