@@ -17,12 +17,8 @@ func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedF
 	visibleFiles := getVisible(files, selectedFileIndex)
 
 	for i, f := range visibleFiles {
-		prepend := "  "
-		if f == selected {
-			prepend = "> "
-		}
 		fg, bg := getColors(f, selected)
-		printWide(0, i+offset, prepend+getFileName(f), fg, bg)
+		printWide(0, i+offset, " "+getFileName(f), fg, bg)
 	}
 	printStatusBar(selectedFileIndex, len(files), selected)
 }
@@ -31,7 +27,7 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo) {
 	w, h := termbox.Size()
 
 	for i := 0; i < w; i++ {
-		termbox.SetCell(i, h-1, ' ', termbox.ColorWhite, termbox.ColorWhite)
+		termbox.SetCell(i, h-1, ' ', termbox.ColorBlack, termbox.ColorGreen)
 	}
 
 	fs := ""
@@ -55,13 +51,13 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo) {
 		h-1,
 		fs,
 		termbox.ColorBlack,
-		termbox.ColorWhite)
+		termbox.ColorGreen)
 	printWide(
 		w-3,
 		h-1,
 		getScrollPosition(flen, selectedFileIndex),
 		termbox.ColorBlack,
-		termbox.ColorWhite)
+		termbox.ColorGreen)
 	termbox.Flush()
 }
 
@@ -149,15 +145,15 @@ func getFileName(file os.FileInfo) string {
 func getColors(file os.FileInfo, selected os.FileInfo) (termbox.Attribute, termbox.Attribute) {
 	switch {
 	case file.IsDir() && file == selected:
-		return termbox.ColorBlack, termbox.ColorBlue
+		return termbox.ColorBlack | termbox.AttrBold, termbox.ColorBlue | termbox.AttrBold
 	case file.IsDir() && file != selected:
-		return termbox.ColorBlue, termbox.ColorDefault
+		return termbox.ColorBlue | termbox.AttrBold, termbox.ColorDefault | termbox.AttrBold
 	case !file.IsDir() && file == selected:
-		return termbox.ColorBlack, termbox.ColorWhite
+		return termbox.ColorBlack, termbox.ColorGreen
 	case !file.IsDir() && file != selected:
-		return termbox.ColorWhite, termbox.ColorDefault
+		return termbox.ColorGreen, termbox.ColorDefault
 	}
-	return termbox.ColorDefault, termbox.ColorDefault
+	return termbox.ColorDefault | termbox.AttrBold, termbox.ColorDefault | termbox.AttrBold
 }
 
 func FixScreen() {
