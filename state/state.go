@@ -25,6 +25,8 @@ type State struct {
 	ShowHidden bool
 	Prev       prev
 	Search     Search
+	Message    string
+	IsPromting bool
 }
 
 func CreateState() *State {

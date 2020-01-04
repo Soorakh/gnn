@@ -25,6 +25,8 @@ func Bind(s *state.State) {
 			switch {
 			case s.Search.IsActive:
 				updateSearchKeyword(string(ev.Ch), ev.Key, s)
+			case s.IsPromting:
+				checkPromt(ev.Ch, s)
 			case ev.Key == termbox.KeyEsc:
 				cancelSearch(s)
 			case ev.Ch == 'q':
@@ -43,6 +45,8 @@ func Bind(s *state.State) {
 				editFile(s)
 			case ev.Ch == '/':
 				searchToggleOn(s)
+			case ev.Ch == 'd':
+				togglePromtOn(s)
 			}
 		case termbox.EventResize:
 			updateScreen(s)
@@ -91,6 +95,26 @@ func searchToggleOn(s *state.State) {
 	updateScreen(s)
 }
 
+func togglePromtOn(s *state.State) {
+	if s.Selected.File == nil {
+		return
+	}
+	s.IsPromting = true
+	s.Message = "Type 'y' to delete '" + s.Selected.File.Name() + "'"
+	updateScreen(s)
+}
+
+func checkPromt(ch rune, s *state.State) {
+	s.IsPromting = false
+	s.Message = ""
+
+	if ch == 'y' {
+		deleteFile(s)
+	} else {
+		updateScreen(s)
+	}
+}
+
 func moveCursorDown(s *state.State) {
 	s.Selected.Index = cursor.MoveDown(s.Selected.Index, len(s.Files))
 	s.Selected.File = s.Files[s.Selected.Index]
@@ -98,7 +122,8 @@ func moveCursorDown(s *state.State) {
 }
 
 func updateScreen(s *state.State) {
-	output.PrintFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search)
+	output.PrintFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search, s.Message)
+	s.Message = ""
 }
 
 func moveCursorUp(s *state.State) {
@@ -190,5 +215,26 @@ func editFile(s *state.State) {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 	output.FixScreen()
+	updateScreen(s)
+}
+
+func deleteFile(s *state.State) {
+	if s.Selected.File == nil {
+		return
+	}
+
+	err := files.RemoveFile(s.Dir, s.Selected.File)
+	if err != nil {
+		s.Message = err.Error()
+	} else {
+		if s.Selected.Index != 0 {
+			s.Selected.Index = s.Selected.Index - 1
+			s.Selected.File = s.Files[s.Selected.Index]
+		} else {
+			s.Selected.File = nil
+		}
+	}
+
+	updateDir(s.Dir, s, false)
 	updateScreen(s)
 }

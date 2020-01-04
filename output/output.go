@@ -11,7 +11,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedFileIndex int, search state.Search) {
+func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedFileIndex int, search state.Search, message string) {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	printWide(0, 0, dir, termbox.ColorDefault, termbox.ColorDefault)
 	offset := 2
@@ -21,10 +21,10 @@ func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedF
 		fg, bg := getColors(f, selected)
 		printWide(0, i+offset, " "+getFileName(f), fg, bg)
 	}
-	printStatusBar(selectedFileIndex, len(files), selected, search)
+	printStatusBar(selectedFileIndex, len(files), selected, search, message)
 }
 
-func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo, search state.Search) {
+func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo, search state.Search, message string) {
 	w, h := termbox.Size()
 
 	for i := 0; i < w; i++ {
@@ -33,7 +33,9 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo, s
 
 	fs := ""
 
-	if search.IsActive {
+	if message != "" {
+		fs = message
+	} else if search.IsActive {
 		fs = "/" + search.Keyword
 	} else {
 		if flen == 0 {

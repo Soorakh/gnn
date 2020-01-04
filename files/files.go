@@ -48,3 +48,7 @@ func GetFiles(dir string, showHidden bool, search string) []os.FileInfo {
 
 	return files
 }
+
+func RemoveFile(path string, file os.FileInfo) error {
+	return os.RemoveAll(path + "/" + file.Name())
+}
