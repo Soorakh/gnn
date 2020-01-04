@@ -1,7 +1,9 @@
 package output
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/mattn/go-runewidth"
@@ -22,10 +24,10 @@ func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedF
 		fg, bg := getColors(f, selected)
 		printWide(0, i+offset, prepend+getFileName(f), fg, bg)
 	}
-	printStatusBar(selectedFileIndex, len(files), getFileName(selected))
+	printStatusBar(selectedFileIndex, len(files), selected)
 }
 
-func printStatusBar(selectedFileIndex int, flen int, selectedFileName string) {
+func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo) {
 	w, h := termbox.Size()
 
 	for i := 0; i < w; i++ {
@@ -39,7 +41,13 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFileName string) {
 	} else {
 		fs = strconv.Itoa(selectedFileIndex+1) +
 			"/" + strconv.Itoa(flen) +
-			" [" + selectedFileName + "]"
+			" " + selectedFile.ModTime().Format("2006-01-02 15:04:05") + " " +
+			selectedFile.Mode().String() +
+			" " + formatSize(selectedFile.Size())
+		if !selectedFile.IsDir() && filepath.Ext(selectedFile.Name()) != "" {
+			fs = fs + " " + filepath.Ext(selectedFile.Name())
+		}
+		fs = fs + " [" + getFileName(selectedFile) + "]"
 	}
 
 	printWide(
@@ -55,6 +63,19 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFileName string) {
 		termbox.ColorBlack,
 		termbox.ColorWhite)
 	termbox.Flush()
+}
+
+func formatSize(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
 func printWide(x, y int, s string, fg termbox.Attribute, bg termbox.Attribute) {
