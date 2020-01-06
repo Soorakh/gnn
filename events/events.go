@@ -76,6 +76,7 @@ func cancelSearch(s *state.State) {
 func searchToggleOn(s *state.State) {
 	s.Search.Keyword = ""
 	s.Search.IsActive = true
+	s.Search.Offset = 0
 	output.UpdateScreen(s)
 }
 
@@ -85,6 +86,7 @@ func toggleRenameOn(s *state.State) {
 	}
 	s.Rename.Keyword = filepath.Join(s.Dir, s.Selected.File.Name())
 	s.Rename.IsActive = true
+	s.Rename.Offset = len(s.Rename.Keyword)
 	output.UpdateScreen(s)
 }
 
@@ -95,6 +97,7 @@ func toggleMkdirOn(s *state.State) {
 	}
 	s.Mkdir.Keyword = s.Dir + trailing
 	s.Mkdir.IsActive = true
+	s.Mkdir.Offset = len(s.Mkdir.Keyword)
 	output.UpdateScreen(s)
 }
 

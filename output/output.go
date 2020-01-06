@@ -60,10 +60,13 @@ func printStatusBar(
 		fs = message
 	case search.IsActive:
 		fs = "/" + search.Keyword
+		termbox.SetCursor(search.Offset+1, h-1)
 	case rename.IsActive:
 		fs = rename.Keyword
+		termbox.SetCursor(rename.Offset, h-1)
 	case mkdir.IsActive:
 		fs = mkdir.Keyword
+		termbox.SetCursor(mkdir.Offset, h-1)
 	case flen == 0:
 		fs = "0/0"
 	default:

@@ -16,6 +16,7 @@ type selected struct {
 type Input struct {
 	IsActive bool
 	Keyword  string
+	Offset   int
 }
 
 type State struct {
