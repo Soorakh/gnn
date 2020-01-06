@@ -12,7 +12,7 @@ import (
 )
 
 func UpdateScreen(s *state.State) {
-	printFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search, s.Rename, s.Message)
+	printFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search, s.Rename, s.Mkdir, s.Message)
 	s.Message = ""
 }
 
@@ -23,6 +23,7 @@ func printFiles(
 	selectedFileIndex int,
 	search state.Input,
 	rename state.Input,
+	mkdir state.Input,
 	message string) {
 
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
@@ -34,7 +35,7 @@ func printFiles(
 		fg, bg := getColors(f, selected)
 		printWide(0, i+offset, " "+getFileName(f), fg, bg)
 	}
-	printStatusBar(selectedFileIndex, len(files), selected, search, rename, message)
+	printStatusBar(selectedFileIndex, len(files), selected, search, rename, mkdir, message)
 }
 
 func printStatusBar(
@@ -43,6 +44,7 @@ func printStatusBar(
 	selectedFile os.FileInfo,
 	search state.Input,
 	rename state.Input,
+	mkdir state.Input,
 	message string) {
 
 	w, h := termbox.Size()
@@ -60,6 +62,8 @@ func printStatusBar(
 		fs = "/" + search.Keyword
 	case rename.IsActive:
 		fs = rename.Keyword
+	case mkdir.IsActive:
+		fs = mkdir.Keyword
 	case flen == 0:
 		fs = "0/0"
 	default:

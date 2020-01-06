@@ -3,7 +3,8 @@ package events
 import (
 	"os"
 	"os/exec"
-	"strings"
+	"path"
+	"path/filepath"
 
 	"github.com/Soorakh/gnn/cursor"
 	"github.com/Soorakh/gnn/files"
@@ -28,9 +29,11 @@ func Bind(s *state.State) {
 				input.HandleSearch(string(ev.Ch), ev.Key, s)
 			case s.Rename.IsActive:
 				input.HandleRename(string(ev.Ch), ev.Key, s)
+			case s.Mkdir.IsActive:
+				input.HandleMkdir(string(ev.Ch), ev.Key, s)
 			case s.IsPromting:
 				checkPromt(ev.Ch, s)
-			case ev.Key == termbox.KeyEsc:
+			case ev.Key == termbox.KeyEsc && s.Search.Keyword != "":
 				cancelSearch(s)
 			case ev.Ch == 'q':
 				return
@@ -55,6 +58,8 @@ func Bind(s *state.State) {
 				output.UpdateScreen(s)
 			case ev.Ch == 'm':
 				toggleRenameOn(s)
+			case ev.Ch == 'n':
+				toggleMkdirOn(s)
 			}
 		case termbox.EventResize:
 			output.UpdateScreen(s)
@@ -78,8 +83,18 @@ func toggleRenameOn(s *state.State) {
 	if s.Selected.File == nil {
 		return
 	}
-	s.Rename.Keyword = s.Dir + files.GetDirectorySeparator(s.Dir) + s.Selected.File.Name()
+	s.Rename.Keyword = filepath.Join(s.Dir, s.Selected.File.Name())
 	s.Rename.IsActive = true
+	output.UpdateScreen(s)
+}
+
+func toggleMkdirOn(s *state.State) {
+	trailing := string(filepath.Separator)
+	if s.Dir == string(filepath.Separator) {
+		trailing = ""
+	}
+	s.Mkdir.Keyword = s.Dir + trailing
+	s.Mkdir.IsActive = true
 	output.UpdateScreen(s)
 }
 
@@ -120,13 +135,9 @@ func openFile(file os.FileInfo, s *state.State) {
 		return
 	}
 	if file.IsDir() {
-		delimeter := "/"
-		if s.Dir == "/" {
-			delimeter = ""
-		}
 		s.Prev.Dir = s.Dir
 		s.Prev.File = file
-		files.UpdateDir(s.Dir+delimeter+file.Name(), s, true)
+		files.UpdateDir(filepath.Join(s.Dir, file.Name()), s, true)
 		output.UpdateScreen(s)
 	} else {
 		cmd := exec.Command("xdg-open", s.Dir+"/"+file.Name())
@@ -135,16 +146,7 @@ func openFile(file os.FileInfo, s *state.State) {
 }
 
 func changeDirUp(s *state.State) {
-	p := strings.Split(s.Dir, "/")
-	plen := len(p)
-	if plen < 2 {
-		return
-	}
-	p = p[:plen-1]
-	newDir := "/"
-	if plen > 2 {
-		newDir = strings.Join(p, "/")
-	}
+	newDir := path.Dir(s.Dir)
 
 	resetSelected := true
 

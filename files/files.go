@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -77,16 +78,13 @@ func UpdateDir(d string, s *state.State, resetSelected bool) {
 }
 
 func RemoveFile(path string, file os.FileInfo) error {
-	return os.RemoveAll(path + "/" + file.Name())
+	return os.RemoveAll(filepath.Join(path, file.Name()))
 }
 
 func MoveFile(path string, file os.FileInfo, newname string) error {
-	return os.Rename(path+GetDirectorySeparator(path)+file.Name(), newname)
+	return os.Rename(filepath.Join(path, file.Name()), newname)
 }
 
-func GetDirectorySeparator(dir string) string {
-	if dir == "/" {
-		return ""
-	}
-	return "/"
+func CreateDirectory(dir string) error {
+	return os.MkdirAll(dir, os.ModePerm)
 }

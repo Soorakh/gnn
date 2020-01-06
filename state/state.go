@@ -28,6 +28,7 @@ type State struct {
 	Message    string
 	IsPromting bool
 	Rename     Input
+	Mkdir      Input
 }
 
 func CreateState() *State {
