@@ -13,7 +13,7 @@ type selected struct {
 	Index int
 }
 
-type Search struct {
+type Input struct {
 	IsActive bool
 	Keyword  string
 }
@@ -24,9 +24,10 @@ type State struct {
 	Selected   selected
 	ShowHidden bool
 	Prev       prev
-	Search     Search
+	Search     Input
 	Message    string
 	IsPromting bool
+	Rename     Input
 }
 
 func CreateState() *State {

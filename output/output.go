@@ -11,7 +11,20 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedFileIndex int, search state.Search, message string) {
+func UpdateScreen(s *state.State) {
+	printFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search, s.Rename, s.Message)
+	s.Message = ""
+}
+
+func printFiles(
+	files []os.FileInfo,
+	selected os.FileInfo,
+	dir string,
+	selectedFileIndex int,
+	search state.Input,
+	rename state.Input,
+	message string) {
+
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	printWide(0, 0, dir, termbox.ColorDefault, termbox.ColorDefault)
 	offset := 2
@@ -21,10 +34,17 @@ func PrintFiles(files []os.FileInfo, selected os.FileInfo, dir string, selectedF
 		fg, bg := getColors(f, selected)
 		printWide(0, i+offset, " "+getFileName(f), fg, bg)
 	}
-	printStatusBar(selectedFileIndex, len(files), selected, search, message)
+	printStatusBar(selectedFileIndex, len(files), selected, search, rename, message)
 }
 
-func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo, search state.Search, message string) {
+func printStatusBar(
+	selectedFileIndex int,
+	flen int,
+	selectedFile os.FileInfo,
+	search state.Input,
+	rename state.Input,
+	message string) {
+
 	w, h := termbox.Size()
 
 	for i := 0; i < w; i++ {
@@ -33,24 +53,17 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo, s
 
 	fs := ""
 
-	if message != "" {
+	switch {
+	case message != "":
 		fs = message
-	} else if search.IsActive {
+	case search.IsActive:
 		fs = "/" + search.Keyword
-	} else {
-		if flen == 0 {
-			fs = "0/0"
-		} else {
-			fs = strconv.Itoa(selectedFileIndex+1) +
-				"/" + strconv.Itoa(flen) +
-				" " + selectedFile.ModTime().Format("2006-01-02 15:04:05") + " " +
-				selectedFile.Mode().String() +
-				" " + formatSize(selectedFile.Size())
-			if !selectedFile.IsDir() && filepath.Ext(selectedFile.Name()) != "" {
-				fs = fs + " " + filepath.Ext(selectedFile.Name())
-			}
-			fs = fs + " [" + getFileName(selectedFile) + "]"
-		}
+	case rename.IsActive:
+		fs = rename.Keyword
+	case flen == 0:
+		fs = "0/0"
+	default:
+		fs = getDefaultFs(flen, selectedFileIndex, selectedFile)
 	}
 
 	printWide(
@@ -66,6 +79,21 @@ func printStatusBar(selectedFileIndex int, flen int, selectedFile os.FileInfo, s
 		termbox.ColorBlack,
 		termbox.ColorGreen)
 	termbox.Flush()
+}
+
+func getDefaultFs(flen int, selectedFileIndex int, selectedFile os.FileInfo) string {
+	fs := strconv.Itoa(selectedFileIndex+1) +
+		"/" + strconv.Itoa(flen) +
+		" " + selectedFile.ModTime().Format("2006-01-02 15:04:05") + " " +
+		selectedFile.Mode().String() +
+		" " + formatSize(selectedFile.Size())
+
+	if !selectedFile.IsDir() && filepath.Ext(selectedFile.Name()) != "" {
+		fs = fs + " " + filepath.Ext(selectedFile.Name())
+	}
+	fs = fs + " [" + getFileName(selectedFile) + "]"
+
+	return fs
 }
 
 func formatSize(b int64) string {
@@ -89,20 +117,6 @@ func printWide(x, y int, s string, fg termbox.Attribute, bg termbox.Attribute) {
 			w = 1
 		}
 		x += w
-	}
-}
-
-func Dump(as []string) {
-	for i, s := range as {
-		x := 40
-		for _, r := range s {
-			termbox.SetCell(x, i, r, termbox.ColorDefault, termbox.ColorDefault)
-			w := runewidth.RuneWidth(r)
-			if w == 0 || (w == 2 && runewidth.IsAmbiguousWidth(r)) {
-				w = 1
-			}
-			x += w
-		}
 	}
 }
 

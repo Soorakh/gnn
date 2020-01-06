@@ -7,6 +7,7 @@ import (
 
 	"github.com/Soorakh/gnn/cursor"
 	"github.com/Soorakh/gnn/files"
+	"github.com/Soorakh/gnn/input"
 	"github.com/Soorakh/gnn/output"
 	"github.com/Soorakh/gnn/state"
 	"github.com/nsf/termbox-go"
@@ -14,8 +15,8 @@ import (
 
 func Init(s *state.State) {
 	dir, _ := os.Getwd()
-	updateDir(dir, s, true)
-	updateScreen(s)
+	files.UpdateDir(dir, s, true)
+	output.UpdateScreen(s)
 }
 
 func Bind(s *state.State) {
@@ -24,7 +25,9 @@ func Bind(s *state.State) {
 		case termbox.EventKey:
 			switch {
 			case s.Search.IsActive:
-				updateSearchKeyword(string(ev.Ch), ev.Key, s)
+				input.HandleSearch(string(ev.Ch), ev.Key, s)
+			case s.Rename.IsActive:
+				input.HandleRename(string(ev.Ch), ev.Key, s)
 			case s.IsPromting:
 				checkPromt(ev.Ch, s)
 			case ev.Key == termbox.KeyEsc:
@@ -48,54 +51,36 @@ func Bind(s *state.State) {
 			case ev.Ch == 'd':
 				togglePromtOn(s)
 			case ev.Ch == 'r':
-				updateDir(s.Dir, s, false)
-				updateScreen(s)
+				files.UpdateDir(s.Dir, s, false)
+				output.UpdateScreen(s)
+			case ev.Ch == 'm':
+				toggleRenameOn(s)
 			}
 		case termbox.EventResize:
-			updateScreen(s)
+			output.UpdateScreen(s)
 		}
 	}
 }
 
 func cancelSearch(s *state.State) {
 	s.Search.Keyword = ""
-	updateDir(s.Dir, s, false)
-	updateScreen(s)
-}
-
-func updateSearchKeyword(ch string, key termbox.Key, s *state.State) {
-	// Esc to stop search input
-	if key == termbox.KeyEsc {
-		s.Search.IsActive = false
-		updateScreen(s)
-		return
-	}
-	// Backspace to backspace
-	if key == termbox.KeyBackspace2 {
-		if len(s.Search.Keyword) == 0 {
-			return
-		}
-		s.Search.Keyword = s.Search.Keyword[0 : len(s.Search.Keyword)-1]
-		updateDir(s.Dir, s, true)
-		updateScreen(s)
-		return
-	}
-
-	// Non-iput buttons are ignored
-	if key <= termbox.KeyF1 && key >= termbox.KeyArrowRight {
-		return
-	}
-
-	// Append char to search by default
-	s.Search.Keyword = s.Search.Keyword + ch
-	updateDir(s.Dir, s, true)
-	updateScreen(s)
+	files.UpdateDir(s.Dir, s, false)
+	output.UpdateScreen(s)
 }
 
 func searchToggleOn(s *state.State) {
 	s.Search.Keyword = ""
 	s.Search.IsActive = true
-	updateScreen(s)
+	output.UpdateScreen(s)
+}
+
+func toggleRenameOn(s *state.State) {
+	if s.Selected.File == nil {
+		return
+	}
+	s.Rename.Keyword = s.Selected.File.Name()
+	s.Rename.IsActive = true
+	output.UpdateScreen(s)
 }
 
 func togglePromtOn(s *state.State) {
@@ -104,7 +89,7 @@ func togglePromtOn(s *state.State) {
 	}
 	s.IsPromting = true
 	s.Message = "Type 'y' to delete '" + s.Selected.File.Name() + "'"
-	updateScreen(s)
+	output.UpdateScreen(s)
 }
 
 func checkPromt(ch rune, s *state.State) {
@@ -114,25 +99,20 @@ func checkPromt(ch rune, s *state.State) {
 	if ch == 'y' {
 		deleteFile(s)
 	} else {
-		updateScreen(s)
+		output.UpdateScreen(s)
 	}
 }
 
 func moveCursorDown(s *state.State) {
 	s.Selected.Index = cursor.MoveDown(s.Selected.Index, len(s.Files))
 	s.Selected.File = s.Files[s.Selected.Index]
-	updateScreen(s)
-}
-
-func updateScreen(s *state.State) {
-	output.PrintFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search, s.Message)
-	s.Message = ""
+	output.UpdateScreen(s)
 }
 
 func moveCursorUp(s *state.State) {
 	s.Selected.Index = cursor.MoveUp(s.Selected.Index, len(s.Files))
 	s.Selected.File = s.Files[s.Selected.Index]
-	updateScreen(s)
+	output.UpdateScreen(s)
 }
 
 func openFile(file os.FileInfo, s *state.State) {
@@ -146,36 +126,11 @@ func openFile(file os.FileInfo, s *state.State) {
 		}
 		s.Prev.Dir = s.Dir
 		s.Prev.File = file
-		updateDir(s.Dir+delimeter+file.Name(), s, true)
-		updateScreen(s)
+		files.UpdateDir(s.Dir+delimeter+file.Name(), s, true)
+		output.UpdateScreen(s)
 	} else {
 		cmd := exec.Command("xdg-open", s.Dir+"/"+file.Name())
 		cmd.Start()
-	}
-}
-
-func updateDir(d string, s *state.State, resetSelected bool) {
-	ratio := float64(s.Selected.Index) / float64(len(s.Files))
-
-	s.Dir = d
-	s.Files = files.GetFiles(d, s.ShowHidden, s.Search.Keyword)
-	if !resetSelected && s.Selected.File != nil {
-		if s.Selected.Index >= len(s.Files) {
-			s.Selected.Index = int(ratio * float64(len(s.Files)))
-		}
-		for i, v := range s.Files {
-			if v.Name() == s.Selected.File.Name() {
-				s.Selected.Index = i
-				break
-			}
-		}
-	} else {
-		s.Selected.Index = 0
-	}
-	if len(s.Files) > 0 {
-		s.Selected.File = s.Files[s.Selected.Index]
-	} else {
-		s.Selected.File = nil
 	}
 }
 
@@ -199,15 +154,15 @@ func changeDirUp(s *state.State) {
 		resetSelected = false
 	}
 
-	updateDir(newDir, s, resetSelected)
+	files.UpdateDir(newDir, s, resetSelected)
 
-	updateScreen(s)
+	output.UpdateScreen(s)
 }
 
 func toggleHidden(s *state.State) {
 	s.ShowHidden = !s.ShowHidden
-	updateDir(s.Dir, s, false)
-	updateScreen(s)
+	files.UpdateDir(s.Dir, s, false)
+	output.UpdateScreen(s)
 }
 
 func editFile(s *state.State) {
@@ -218,7 +173,7 @@ func editFile(s *state.State) {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 	output.FixScreen()
-	updateScreen(s)
+	output.UpdateScreen(s)
 }
 
 func deleteFile(s *state.State) {
@@ -238,6 +193,6 @@ func deleteFile(s *state.State) {
 		}
 	}
 
-	updateDir(s.Dir, s, false)
-	updateScreen(s)
+	files.UpdateDir(s.Dir, s, false)
+	output.UpdateScreen(s)
 }
