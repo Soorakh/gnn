@@ -80,6 +80,13 @@ func RemoveFile(path string, file os.FileInfo) error {
 	return os.RemoveAll(path + "/" + file.Name())
 }
 
-func RenameFile(path string, file os.FileInfo, newname string) error {
-	return os.Rename(path+"/"+file.Name(), path+"/"+newname)
+func MoveFile(path string, file os.FileInfo, newname string) error {
+	return os.Rename(path+GetDirectorySeparator(path)+file.Name(), newname)
+}
+
+func GetDirectorySeparator(dir string) string {
+	if dir == "/" {
+		return ""
+	}
+	return "/"
 }

@@ -53,7 +53,7 @@ func renameEsc(ch string, s *state.State) {
 }
 
 func renameEnter(ch string, s *state.State) {
-	err := files.RenameFile(s.Dir, s.Selected.File, s.Rename.Keyword)
+	err := files.MoveFile(s.Dir, s.Selected.File, s.Rename.Keyword)
 
 	if err != nil {
 		s.Message = err.Error()

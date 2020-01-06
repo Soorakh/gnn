@@ -78,7 +78,7 @@ func toggleRenameOn(s *state.State) {
 	if s.Selected.File == nil {
 		return
 	}
-	s.Rename.Keyword = s.Selected.File.Name()
+	s.Rename.Keyword = s.Dir + files.GetDirectorySeparator(s.Dir) + s.Selected.File.Name()
 	s.Rename.IsActive = true
 	output.UpdateScreen(s)
 }
