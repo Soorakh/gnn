@@ -6,7 +6,6 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/Soorakh/gnn/cursor"
 	"github.com/Soorakh/gnn/files"
 	"github.com/Soorakh/gnn/input"
 	"github.com/Soorakh/gnn/output"
@@ -122,15 +121,29 @@ func checkPromt(ch rune, s *state.State) {
 }
 
 func moveCursorDown(s *state.State) {
-	s.Selected.Index = cursor.MoveDown(s.Selected.Index, len(s.Files))
+	s.Selected.Index = getCursorIndex(s.Selected.Index, len(s.Files), "up")
 	s.Selected.File = s.Files[s.Selected.Index]
 	output.UpdateScreen(s)
 }
 
 func moveCursorUp(s *state.State) {
-	s.Selected.Index = cursor.MoveUp(s.Selected.Index, len(s.Files))
+	s.Selected.Index = getCursorIndex(s.Selected.Index, len(s.Files), "down")
 	s.Selected.File = s.Files[s.Selected.Index]
 	output.UpdateScreen(s)
+}
+
+func getCursorIndex(index int, length int, direction string) int {
+	if direction == "up" {
+		if index+1 >= length {
+			return 0
+		}
+		return index + 1
+	}
+
+	if index == 0 {
+		return length - 1
+	}
+	return index - 1
 }
 
 func openFile(file os.FileInfo, s *state.State) {
