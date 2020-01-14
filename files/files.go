@@ -1,6 +1,7 @@
 package files
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -87,4 +88,13 @@ func MoveFile(path string, file os.FileInfo, newname string) error {
 
 func CreateDirectory(dir string) error {
 	return os.MkdirAll(dir, os.ModePerm)
+}
+
+func CopyFile(f string, dir string) error {
+	// TODO turned out I do need thread-safe observable state
+	// coping may last really long and should be launched in separate thread
+	// progress should be shown and updated
+	// also golang does not have built-in way of coping files
+	// so state refactoring first, then only can I implement copy-paste feature
+	return errors.New("No way to copy yet!")
 }

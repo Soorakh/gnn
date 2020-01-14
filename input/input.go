@@ -10,6 +10,7 @@ import (
 type inputCallback func(s *state.State)
 
 func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input, rescan bool, onEnter inputCallback) {
+	// TODO cyrillic seems to break stuff
 	if key == termbox.KeyEsc {
 		termbox.HideCursor()
 		input.IsActive = false

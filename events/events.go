@@ -1,6 +1,7 @@
 package events
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -59,11 +60,62 @@ func Bind(s *state.State) {
 				toggleRenameOn(s)
 			case ev.Ch == 'n':
 				toggleMkdirOn(s)
+			case ev.Ch == 'y':
+				yankFile(s)
+			case ev.Ch == 'p':
+				putFile(s)
 			}
 		case termbox.EventResize:
 			output.UpdateScreen(s)
 		}
 	}
+}
+
+func yankFile(s *state.State) {
+	// copy-paste should be process independent
+	// temporary file is best solution here
+	tmp := os.TempDir() + "/gnn"
+	f, err := os.Create(tmp)
+	if err != nil {
+		s.Message = err.Error()
+		output.UpdateScreen(s)
+		return
+	}
+
+	defer f.Close()
+
+	_, err = f.Write([]byte(filepath.Join(s.Dir, s.Selected.File.Name())))
+
+	if err != nil {
+		s.Message = err.Error()
+		output.UpdateScreen(s)
+		return
+	}
+
+	s.Message = "Yanked!"
+	output.UpdateScreen(s)
+}
+
+func putFile(s *state.State) {
+	// TODO read by lines and make array of files to copy
+	f, err := ioutil.ReadFile(os.TempDir() + "/gnn")
+
+	if err != nil {
+		s.Message = err.Error()
+		output.UpdateScreen(s)
+		return
+	}
+
+	err = files.CopyFile(string(f), s.Dir)
+
+	if err != nil {
+		s.Message = err.Error()
+		output.UpdateScreen(s)
+		return
+	}
+
+	files.UpdateDir(s.Dir, s, false)
+	output.UpdateScreen(s)
 }
 
 func cancelSearch(s *state.State) {
@@ -156,7 +208,7 @@ func openFile(file os.FileInfo, s *state.State) {
 		files.UpdateDir(filepath.Join(s.Dir, file.Name()), s, true)
 		output.UpdateScreen(s)
 	} else {
-		cmd := exec.Command("xdg-open", s.Dir+"/"+file.Name())
+		cmd := exec.Command("xdg-open", filepath.Join(s.Dir, file.Name()))
 		cmd.Start()
 	}
 }
