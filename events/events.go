@@ -15,9 +15,9 @@ import (
 )
 
 func Init(s *state.State) {
+	go output.Subscribe(s.C)
 	dir, _ := os.Getwd()
 	files.UpdateDir(dir, s, true)
-	output.UpdateScreen(s)
 }
 
 func Bind(s *state.State) {
@@ -55,7 +55,6 @@ func Bind(s *state.State) {
 				togglePromtOn(s)
 			case ev.Ch == 'r':
 				files.UpdateDir(s.Dir, s, false)
-				output.UpdateScreen(s)
 			case ev.Ch == 'm':
 				toggleRenameOn(s)
 			case ev.Ch == 'n':
@@ -66,7 +65,7 @@ func Bind(s *state.State) {
 				putFile(s)
 			}
 		case termbox.EventResize:
-			output.UpdateScreen(s)
+			s.Apply()
 		}
 	}
 }
@@ -78,7 +77,7 @@ func yankFile(s *state.State) {
 	f, err := os.Create(tmp)
 	if err != nil {
 		s.Message = err.Error()
-		output.UpdateScreen(s)
+		s.Apply()
 		return
 	}
 
@@ -88,12 +87,12 @@ func yankFile(s *state.State) {
 
 	if err != nil {
 		s.Message = err.Error()
-		output.UpdateScreen(s)
+		s.Apply()
 		return
 	}
 
 	s.Message = "Yanked!"
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func putFile(s *state.State) {
@@ -102,7 +101,7 @@ func putFile(s *state.State) {
 
 	if err != nil {
 		s.Message = err.Error()
-		output.UpdateScreen(s)
+		s.Apply()
 		return
 	}
 
@@ -110,25 +109,23 @@ func putFile(s *state.State) {
 
 	if err != nil {
 		s.Message = err.Error()
-		output.UpdateScreen(s)
+		s.Apply()
 		return
 	}
 
 	files.UpdateDir(s.Dir, s, false)
-	output.UpdateScreen(s)
 }
 
 func cancelSearch(s *state.State) {
 	s.Search.Keyword = ""
 	files.UpdateDir(s.Dir, s, false)
-	output.UpdateScreen(s)
 }
 
 func searchToggleOn(s *state.State) {
 	s.Search.Keyword = ""
 	s.Search.IsActive = true
 	s.Search.Offset = 0
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func toggleRenameOn(s *state.State) {
@@ -138,7 +135,7 @@ func toggleRenameOn(s *state.State) {
 	s.Rename.Keyword = filepath.Join(s.Dir, s.Selected.File.Name())
 	s.Rename.IsActive = true
 	s.Rename.Offset = len(s.Rename.Keyword)
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func toggleMkdirOn(s *state.State) {
@@ -149,7 +146,7 @@ func toggleMkdirOn(s *state.State) {
 	s.Mkdir.Keyword = s.Dir + trailing
 	s.Mkdir.IsActive = true
 	s.Mkdir.Offset = len(s.Mkdir.Keyword)
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func togglePromtOn(s *state.State) {
@@ -158,7 +155,7 @@ func togglePromtOn(s *state.State) {
 	}
 	s.IsPromting = true
 	s.Message = "Type 'y' to delete '" + s.Selected.File.Name() + "'"
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func checkPromt(ch rune, s *state.State) {
@@ -168,20 +165,20 @@ func checkPromt(ch rune, s *state.State) {
 	if ch == 'y' {
 		deleteFile(s)
 	} else {
-		output.UpdateScreen(s)
+		s.Apply()
 	}
 }
 
 func moveCursorDown(s *state.State) {
 	s.Selected.Index = getCursorIndex(s.Selected.Index, len(s.Files), "up")
 	s.Selected.File = s.Files[s.Selected.Index]
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func moveCursorUp(s *state.State) {
 	s.Selected.Index = getCursorIndex(s.Selected.Index, len(s.Files), "down")
 	s.Selected.File = s.Files[s.Selected.Index]
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func getCursorIndex(index int, length int, direction string) int {
@@ -206,7 +203,6 @@ func openFile(file os.FileInfo, s *state.State) {
 		s.Prev.Dir = s.Dir
 		s.Prev.File = file
 		files.UpdateDir(filepath.Join(s.Dir, file.Name()), s, true)
-		output.UpdateScreen(s)
 	} else {
 		cmd := exec.Command("xdg-open", filepath.Join(s.Dir, file.Name()))
 		cmd.Start()
@@ -225,14 +221,11 @@ func changeDirUp(s *state.State) {
 	}
 
 	files.UpdateDir(newDir, s, resetSelected)
-
-	output.UpdateScreen(s)
 }
 
 func toggleHidden(s *state.State) {
 	s.ShowHidden = !s.ShowHidden
 	files.UpdateDir(s.Dir, s, false)
-	output.UpdateScreen(s)
 }
 
 func editFile(s *state.State) {
@@ -243,7 +236,7 @@ func editFile(s *state.State) {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 	output.FixScreen()
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func deleteFile(s *state.State) {
@@ -264,5 +257,4 @@ func deleteFile(s *state.State) {
 	}
 
 	files.UpdateDir(s.Dir, s, false)
-	output.UpdateScreen(s)
 }

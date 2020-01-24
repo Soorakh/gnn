@@ -30,8 +30,15 @@ type State struct {
 	IsPromting bool
 	Rename     Input
 	Mkdir      Input
+	C          chan State
 }
 
 func CreateState() *State {
-	return &State{}
+	s := &State{}
+	s.C = make(chan State)
+	return s
+}
+
+func (s *State) Apply() {
+	s.C <- *s
 }

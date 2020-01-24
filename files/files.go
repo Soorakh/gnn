@@ -76,6 +76,7 @@ func UpdateDir(d string, s *state.State, resetSelected bool) {
 	} else {
 		s.Selected.File = nil
 	}
+	s.Apply()
 }
 
 func RemoveFile(path string, file os.FileInfo) error {

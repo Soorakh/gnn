@@ -2,7 +2,6 @@ package input
 
 import (
 	"github.com/Soorakh/gnn/files"
-	"github.com/Soorakh/gnn/output"
 	"github.com/Soorakh/gnn/state"
 	"github.com/nsf/termbox-go"
 )
@@ -14,7 +13,7 @@ func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input
 	if key == termbox.KeyEsc {
 		termbox.HideCursor()
 		input.IsActive = false
-		output.UpdateScreen(s)
+		s.Apply()
 		return
 	}
 
@@ -28,7 +27,7 @@ func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input
 		if rescan {
 			files.UpdateDir(s.Dir, s, true)
 		}
-		output.UpdateScreen(s)
+		s.Apply()
 		return
 	}
 
@@ -40,7 +39,7 @@ func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input
 		input.Keyword = ""
 
 		files.UpdateDir(s.Dir, s, false)
-		output.UpdateScreen(s)
+		s.Apply()
 		return
 	}
 
@@ -49,7 +48,6 @@ func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input
 			return
 		}
 		input.Offset = input.Offset - 1
-		output.UpdateScreen(s)
 	}
 
 	if key == termbox.KeyArrowRight {
@@ -57,7 +55,6 @@ func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input
 			return
 		}
 		input.Offset = input.Offset + 1
-		output.UpdateScreen(s)
 	}
 
 	if key == termbox.KeyDelete {
@@ -68,8 +65,9 @@ func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input
 		if rescan {
 			files.UpdateDir(s.Dir, s, false)
 		}
-		output.UpdateScreen(s)
 	}
+
+	s.Apply()
 
 	// Non-iput buttons are ignored
 	if key <= termbox.KeyF1 && key >= termbox.KeyArrowRight {
@@ -81,7 +79,7 @@ func inputHandler(ch string, key termbox.Key, s *state.State, input *state.Input
 		files.UpdateDir(s.Dir, s, true)
 	}
 	input.Offset = input.Offset + 1
-	output.UpdateScreen(s)
+	s.Apply()
 }
 
 func HandleSearch(ch string, key termbox.Key, s *state.State) {

@@ -11,9 +11,11 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-func UpdateScreen(s *state.State) {
-	printFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search, s.Rename, s.Mkdir, s.Message)
-	s.Message = ""
+func Subscribe(c chan state.State) {
+	for s := range c {
+		printFiles(s.Files, s.Selected.File, s.Dir, s.Selected.Index, s.Search, s.Rename, s.Mkdir, s.Message)
+		s.Message = ""
+	}
 }
 
 func printFiles(
